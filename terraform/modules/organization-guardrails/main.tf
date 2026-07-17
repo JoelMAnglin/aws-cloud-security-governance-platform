@@ -37,8 +37,8 @@ locals {
       content = {
         Version = "2012-10-17"
         Statement = [{
-          Sid      = "DenyOutsideApprovedRegions"
-          Effect   = "Deny"
+          Sid    = "DenyOutsideApprovedRegions"
+          Effect = "Deny"
           NotAction = [
             "a4b:*", "acm:*", "aws-marketplace-management:*", "aws-marketplace:*",
             "aws-portal:*", "budgets:*", "ce:*", "chime:*", "cloudfront:*",
@@ -51,7 +51,7 @@ locals {
             "sts:*", "support:*", "trustedadvisor:*", "waf-regional:*", "waf:*",
             "wafv2:*", "wellarchitected:*"
           ]
-          Resource = "*"
+          Resource  = "*"
           Condition = { StringNotEquals = { "aws:RequestedRegion" = ["us-east-1", "us-west-2"] } }
         }]
       }

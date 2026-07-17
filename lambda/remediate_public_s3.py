@@ -55,7 +55,9 @@ def lambda_handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
             bucket = _bucket_name(resource)
             if not bucket:
                 continue
-            LOGGER.info(json.dumps({"action": "block-public-access", "bucket": bucket, "dry_run": dry_run}))
+            LOGGER.info(
+                json.dumps({"action": "block-public-access", "bucket": bucket, "dry_run": dry_run})
+            )
             if not dry_run:
                 s3.put_public_access_block(
                     Bucket=bucket,
@@ -65,9 +67,11 @@ def lambda_handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
                     securityhub.batch_update_findings(
                         FindingIdentifiers=[{"Id": finding_id, "ProductArn": product_arn}],
                         Workflow={"Status": "RESOLVED"},
-                        Note={"Text": "Public access blocked by automated remediation.", "UpdatedBy": "security-hub-s3-remediation"},
+                        Note={
+                            "Text": "Public access blocked by automated remediation.",
+                            "UpdatedBy": "security-hub-s3-remediation",
+                        },
                     )
             results.append({"bucket": bucket, "status": "planned" if dry_run else "remediated"})
 
     return {"dry_run": dry_run, "processed": len(results), "results": results}
-

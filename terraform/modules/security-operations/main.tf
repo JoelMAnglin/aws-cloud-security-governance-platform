@@ -2,7 +2,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 resource "aws_securityhub_account" "this" {
-  enable_default_standards = true
+  enable_default_standards  = true
   control_finding_generator = "SECURITY_CONTROL"
 }
 
@@ -10,18 +10,61 @@ resource "aws_guardduty_detector" "this" {
   enable                       = true
   finding_publishing_frequency = "FIFTEEN_MINUTES"
 
-  datasources {
-    s3_logs { enable = true }
-    kubernetes { audit_logs { enable = true } }
-    malware_protection { scan_ec2_instance_with_findings { ebs_volumes { enable = true } } }
-  }
-
   tags = var.tags
+}
+
+resource "aws_guardduty_detector_feature" "this" {
+  for_each = toset(["S3_DATA_EVENTS", "EKS_AUDIT_LOGS", "EBS_MALWARE_PROTECTION"])
+
+  detector_id = aws_guardduty_detector.this.id
+  name        = each.value
+  status      = "ENABLED"
+}
+
+data "aws_iam_policy_document" "notification_key" {
+  statement {
+    sid       = "EnableAccountAdministration"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+  statement {
+    sid       = "AllowSnsUse"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt", "kms:GenerateDataKey*"]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
+resource "aws_kms_key" "notifications" {
+  description             = "Encrypt high-severity cloud security notifications"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.notification_key.json
+  tags                    = var.tags
+}
+
+resource "aws_kms_alias" "notifications" {
+  name          = "alias/cloud-security-notifications"
+  target_key_id = aws_kms_key.notifications.key_id
 }
 
 resource "aws_sns_topic" "security_findings" {
   name              = "cloud-security-high-severity-findings"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_key.notifications.arn
   tags              = var.tags
 }
 
@@ -43,7 +86,10 @@ data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
-    principals { type = "Service", identifiers = ["lambda.amazonaws.com"] }
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
   }
 }
 
@@ -81,15 +127,15 @@ resource "aws_iam_role_policy" "remediation" {
 }
 
 resource "aws_lambda_function" "remediation" {
-  function_name    = "security-hub-s3-remediation"
-  description      = "Blocks public access for S3 findings; defaults to dry-run."
-  filename         = data.archive_file.remediation.output_path
-  source_code_hash = data.archive_file.remediation.output_base64sha256
-  role             = aws_iam_role.remediation.arn
-  handler          = "remediate_public_s3.lambda_handler"
-  runtime          = "python3.13"
-  timeout          = 30
-  memory_size      = 256
+  function_name                  = "security-hub-s3-remediation"
+  description                    = "Blocks public access for S3 findings; defaults to dry-run."
+  filename                       = data.archive_file.remediation.output_path
+  source_code_hash               = data.archive_file.remediation.output_base64sha256
+  role                           = aws_iam_role.remediation.arn
+  handler                        = "remediate_public_s3.lambda_handler"
+  runtime                        = "python3.13"
+  timeout                        = 30
+  memory_size                    = 256
   reserved_concurrent_executions = 5
 
   environment {
@@ -126,8 +172,8 @@ resource "aws_cloudwatch_event_rule" "security_hub_s3" {
     source      = ["aws.securityhub"]
     detail-type = ["Security Hub Findings - Imported"]
     detail = { findings = {
-      Severity = { Label = ["HIGH", "CRITICAL"] }
-      Workflow = { Status = ["NEW", "NOTIFIED"] }
+      Severity  = { Label = ["HIGH", "CRITICAL"] }
+      Workflow  = { Status = ["NEW", "NOTIFIED"] }
       Resources = { Type = ["AwsS3Bucket"] }
     } }
   })
@@ -139,7 +185,10 @@ resource "aws_cloudwatch_event_target" "remediation" {
   target_id = "S3RemediationLambda"
   arn       = aws_lambda_function.remediation.arn
 
-  retry_policy { maximum_event_age_in_seconds = 3600, maximum_retry_attempts = 2 }
+  retry_policy {
+    maximum_event_age_in_seconds = 3600
+    maximum_retry_attempts       = 2
+  }
 }
 
 resource "aws_lambda_permission" "eventbridge" {
@@ -167,11 +216,18 @@ resource "aws_cloudwatch_event_target" "notifications" {
 
 data "aws_iam_policy_document" "sns_events" {
   statement {
-    effect  = "Allow"
-    actions = ["sns:Publish"]
+    effect    = "Allow"
+    actions   = ["sns:Publish"]
     resources = [aws_sns_topic.security_findings.arn]
-    principals { type = "Service", identifiers = ["events.amazonaws.com"] }
-    condition { test = "ArnEquals", variable = "aws:SourceArn", values = [aws_cloudwatch_event_rule.high_severity_findings.arn] }
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [aws_cloudwatch_event_rule.high_severity_findings.arn]
+    }
   }
 }
 
@@ -179,4 +235,3 @@ resource "aws_sns_topic_policy" "security_findings" {
   arn    = aws_sns_topic.security_findings.arn
   policy = data.aws_iam_policy_document.sns_events.json
 }
-

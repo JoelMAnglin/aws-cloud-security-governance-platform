@@ -58,4 +58,3 @@ def test_malformed_findings_rejected():
         assert "must be a list" in str(error)
     else:
         raise AssertionError("Expected malformed event to fail")
-
