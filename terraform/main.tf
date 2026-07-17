@@ -17,3 +17,10 @@ module "identity_governance" {
   tags                         = var.tags
 }
 
+module "security_operations" {
+  source = "./modules/security-operations"
+
+  enable_automatic_remediation = var.enable_automatic_remediation
+  notification_email           = var.notification_email
+  tags                         = var.tags
+}

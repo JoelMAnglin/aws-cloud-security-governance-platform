@@ -13,3 +13,12 @@ output "security_admin_permission_set_arn" {
   value       = module.identity_governance.security_admin_permission_set_arn
 }
 
+output "security_findings_topic_arn" {
+  description = "SNS topic receiving high-severity Security Hub and GuardDuty events."
+  value       = module.security_operations.security_findings_topic_arn
+}
+
+output "remediation_function_name" {
+  description = "Event-driven remediation Lambda function."
+  value       = module.security_operations.remediation_function_name
+}
