@@ -1,0 +1,11 @@
+aws_region                       = "us-east-1"
+organization_id                  = "o-abc123def456"
+workload_ou_ids                  = ["ou-abcd-12345678"]
+attach_guardrails                = false
+identity_center_instance_arn     = "arn:aws:sso:::instance/ssoins-0123456789abcdef"
+identity_store_id                = "d-1234567890"
+security_admin_group_id          = "00000000-1111-2222-3333-444444444444"
+target_account_ids               = ["111122223333"]
+notification_email               = "cloud-security@example.com"
+enable_automatic_remediation     = false
+
