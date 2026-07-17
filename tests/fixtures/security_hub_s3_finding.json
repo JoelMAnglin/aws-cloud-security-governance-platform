@@ -1,0 +1,17 @@
+{
+  "version": "0",
+  "source": "aws.securityhub",
+  "detail-type": "Security Hub Findings - Imported",
+  "detail": {
+    "findings": [{
+      "Id": "arn:aws:securityhub:us-east-1:111122223333:subscription/aws-foundational-security-best-practices/v/1.0.0/S3.1/finding",
+      "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+      "Resources": [{
+        "Type": "AwsS3Bucket",
+        "Id": "arn:aws:s3:::portfolio-public-bucket",
+        "Details": {"AwsS3Bucket": {"Name": "portfolio-public-bucket"}}
+      }]
+    }]
+  }
+}
+

@@ -1,0 +1,29 @@
+[project]
+name = "aws-cloud-security-governance-platform"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = ["boto3>=1.40,<2"]
+
+[project.optional-dependencies]
+dev = [
+  "bandit>=1.8,<2",
+  "pip-audit>=2.9,<3",
+  "pytest>=8,<9",
+  "pytest-cov>=6,<8",
+  "ruff>=0.12,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=lambda --cov-report=term-missing --cov-fail-under=90"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "S", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
