@@ -1,0 +1,13 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+.venv/
+coverage.xml
+.coverage
+evidence/generated/
+
